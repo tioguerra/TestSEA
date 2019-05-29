@@ -34,7 +34,7 @@ SCREEN_HEIGHT = 768
 
 # Graph drawing parameters
 HEIGHT_SCALE = - float(SCREEN_HEIGHT) / (3*np.pi)
-GRAPH_VERT_OFFSET = int(0.75*SCREEN_HEIGHT)
+GRAPH_VERT_OFFSET = int(0.6*SCREEN_HEIGHT)
 GRAPH_LINE_WIDTH = 1
 
 # Colors
@@ -49,9 +49,9 @@ AMPLITUDE_COLOR = (200, 200, 200)
 INSTRUCTIONS_COLOR = (0,0,0)
 
 # For the GUI
-AMPLITUDE_INCREMENT = np.deg2rad(10.0)
+AMPLITUDE_INCREMENT = np.deg2rad(2.5)
 OFFSET_INCREMENT = np.deg2rad(10.0)
-PERIOD_INCREMENT = 1.0
+PERIOD_INCREMENT = 0.25
 LABEL_XOFFSET = -250
 LABEL_YOFFSET = -15
 ARROW_UP_OFFSET = 100
@@ -119,6 +119,7 @@ class TestSEA():
         self.offset = OFFSET
         self.clock = pygame.time.Clock()
         self.theta = 0.0
+        self.offsetPhase = 0.0
         self.history_out0 = [0.0] * GRAPH_WINDOW_SIZE
         self.history_out1 = [0.0] * GRAPH_WINDOW_SIZE
         self._update()
@@ -126,18 +127,21 @@ class TestSEA():
         self.myfont.render('PAGE-UP PAGE-DOWN ARROW-UP ARROW-DOWN ARROW-LEFT ARROW-RIGHT',\
                            False, INSTRUCTIONS_COLOR)
     def step(self):
-        if not self.is_done:
-            self._update()
-            self._handleEvents()
-            self._draw()
+        #if not self.is_done:
+        self._update()
+        self._handleEvents()
+        self._draw()
         self.clock.tick(FPS)
+        print(self.offsetPhase)
+
     def _update(self):
         if self.period > 0.0:
             self.theta = self.theta + (2.0*np.pi / self.period) * SAMPLE_PERIOD
         else:
             self.theta = 0.0
-        self.out0 = self.amplitude * np.sin(self.theta)
-        self.out1 = self.out0 + self.offset
+        self.centerPoint = self.amplitude * np.sin(self.theta)
+        self.out0 = self.centerPoint - self.offset/2.
+        self.out1 = self.centerPoint + self.offset/2.
         self.history_out0 = self.history_out0[1:] + [self.out0]
         self.history_out1 = self.history_out1[1:] + [self.out1]
     def _draw(self):
@@ -190,13 +194,13 @@ class TestSEA():
                    (int(SCREEN_WIDTH / 2.0 - (self.period / PERIOD)*SCREEN_WIDTH/2.0), 85),
                    (int(SCREEN_WIDTH / 2.0 + (self.period / PERIOD)*SCREEN_WIDTH/2.0), 85))
         point0_amplitude0 = (int(SCREEN_WIDTH / 2.0 - 50) , \
-                    int(self.amplitude * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
+                    int((self.amplitude - self.offset/2.) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
         point1_amplitude0 = (int(SCREEN_WIDTH / 2.0 - 50) , \
-                    int(- self.amplitude * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
+                    int(- (self.amplitude + self.offset/2.) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
         point0_amplitude1 = (int(SCREEN_WIDTH / 2.0 + 50) , \
-                    int((self.amplitude + self.offset) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
+                    int((self.amplitude + self.offset/2.) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
         point1_amplitude1 = (int(SCREEN_WIDTH / 2.0 + 50) , \
-                    int(- (self.amplitude - self.offset) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
+                    int(- (self.amplitude - self.offset/2.) * HEIGHT_SCALE + GRAPH_VERT_OFFSET))
 
         draw_double_arrow(self.screen, AMPLITUDE0_COLOR, \
                     point0_amplitude0, point1_amplitude0)
@@ -245,7 +249,11 @@ class TestSEA():
                             self.period = 0.0
                 elif event.key == pygame.K_ESCAPE:
                     self.is_done = True
-ts = TestSEA()
-while not ts.is_done:
-    ts.step()
 
+    def getMotorValues(self):
+        return self.out0, self.out1
+
+if __name__ == "__main__":
+    ts = TestSEA()
+    while not ts.is_done:
+        ts.step()
